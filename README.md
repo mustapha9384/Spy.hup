@@ -1,4 +1,3 @@
-```markdown
 # Spy.hup - Roblox Exploit Script 🕵️
 
 ---
@@ -86,4 +85,3 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/mustapha9384/Spy.hup/
 2026-05-16
 
 ---
-```
