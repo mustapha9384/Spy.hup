@@ -23,7 +23,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/mustapha9384/Spy.hup/
 
 ## 🛠️ الميزات
 
-### 🚤 Boat Master (الملاح) - بعد تفعيل المفتاح `alzaz`
+### 🚤 Boat Master (الملاح) - بعد تفعيل المفتاح ``
 - ✅ تحكم كامل بقارب اللعبة
 - ✅ الطيران غير محدود
 - ✅ التحكم بالسرعة (0-1000)
