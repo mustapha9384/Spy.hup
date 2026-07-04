@@ -1,445 +1,207 @@
--- Fixed Spy Hub V42 - تم إصلاح المشاكل
-local success, fluentLib = pcall(function()
-    return loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/releases/latest/download/main.lua", true))()
+-- [[ GAG2 Anti-Ban Advanced Server Hopper ]] --
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- حماية إضافية: التأكد من عدم تكرار تشغيل السكربت لتجنب الـ Crash أو الرصد
+if _G.AshesHopperLoaded then 
+    print("السكربت يعمل بالفعل!") 
+    return 
+end
+_G.AshesHopperLoaded = true
+
+-- إنشاء الواجهة وتنسيقها
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game:GetService("CoreGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "AshesSafeHopper"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -130, 0.4, -120)
+MainFrame.Size = UDim2.new(0, 260, 0, 290)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 10)
+Corner.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Parent = MainFrame
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Title.Text = "GAG2 Safe Hopper (Bypass)"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 15
+Title.Font = Enum.Font.SourceSansBold
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 10)
+TitleCorner.Parent = Title
+
+-- قائمة البتات
+local petList = {"Void Pet", "Demon Pet", "Angel Pet", "Shadow Pet", "Cactus Pet", "Gold Pet", "Alien Pet", "Frost Pet"}
+local currentPetIndex = 1
+
+local PetSelectBtn = Instance.new("TextButton")
+PetSelectBtn.Parent = MainFrame
+PetSelectBtn.Size = UDim2.new(0.9, 0, 0, 35)
+PetSelectBtn.Position = UDim2.new(0.05, 0, 0.22, 0)
+PetSelectBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+PetSelectBtn.Text = "إختر البت: " .. petList[currentPetIndex]
+PetSelectBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", PetSelectBtn).CornerRadius = UDim.new(0, 6)
+
+PetSelectBtn.MouseButton1Click:Connect(function()
+    currentPetIndex = currentPetIndex + 1
+    if currentPetIndex > #petList then currentPetIndex = 1 end
+    PetSelectBtn.Text = "إختر البت: " .. petList[currentPetIndex]
 end)
 
-if not success or not fluentLib then
-    warn("❌ خطأ في تحميل مكتبة Fluent")
-    return
-end
+-- زر البحث عن البت
+local TeleportPetBtn = Instance.new("TextButton")
+TeleportPetBtn.Parent = MainFrame
+TeleportPetBtn.Size = UDim2.new(0.9, 0, 0, 35)
+TeleportPetBtn.Position = UDim2.new(0.05, 0, 0.42, 0)
+TeleportPetBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 220)
+TeleportPetBtn.Text = "بحث آمن عن البت"
+TeleportPetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TeleportPetBtn.Font = Enum.Font.SourceSansBold
+Instance.new("UICorner", TeleportPetBtn).CornerRadius = UDim.new(0, 6)
 
-local a = fluentLib
-local function _D(s)
-    local r = ""
-    for i = 1, #s do
-        r = r .. string.char(string.byte(s, i) - 1)
-    end
-    return r
-end
+-- زر السيرفر الغني
+local TeleportRichBtn = Instance.new("TextButton")
+TeleportRichBtn.Parent = MainFrame
+TeleportRichBtn.Size = UDim2.new(0.9, 0, 0, 35)
+TeleportRichBtn.Position = UDim2.new(0.05, 0, 0.62, 0)
+TeleportRichBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 60)
+TeleportRichBtn.Text = "سيرفر غني (+30M Coins)"
+TeleportRichBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TeleportRichBtn.Font = Enum.Font.SourceSansBold
+Instance.new("UICorner", TeleportRichBtn).CornerRadius = UDim.new(0, 6)
 
-local b = _D("bmb{") -- alzaz
-local c = _D("tqz!29394:4853") -- spy1838493742
-local d = ""
-local e = false
-local f = _D("كحسوس") -- جاسوس
-local g = {}
-local h = "SpyTrappedUsers.txt"
+-- نص الحالة
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Parent = MainFrame
+StatusLabel.Size = UDim2.new(0.9, 0, 0, 30)
+StatusLabel.Position = UDim2.new(0.05, 0, 0.82, 0)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "الحالة: الحماية نشطة وجاهزة"
+StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 120)
+StatusLabel.TextSize = 13
 
-local function i()
-    local j, k = pcall(function()
-        local l = game:GetService("HttpService"):JSONEncode(g)
-        if writefile then
-            writefile(h, l)
+--- وظيفة الانتقال الآمن والـ Server Hop المقاوم للباند ---
+local function SafeTeleport()
+    StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    StatusLabel.Text = "جاري تجميع قائمة سيرفرات آمنة..."
+    
+    local placeId = game.PlaceId
+    -- جلب السيرفرات بترتيب تنازلي وعشوائي لتشتيت أنظمة المراقبة
+    local serversUrl = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Desc&limit=100"
+    
+    local success, result = pcall(function()
+        return HttpService:JSONDecode(game:HttpGet(serversUrl))
+    end)
+    
+    if success and result and result.data then
+        -- فلترة السيرفرات لضمان عدم الدخول لسيرفر ممتلئ تماماً أو شبه فارغ يثير الشكوك
+        local validServers = {}
+        for _, server in ipairs(result.data) do
+            if server.playing < server.maxPlayers and server.playing > 2 and server.id ~= game.JobId then
+                table.insert(validServers, server.id)
+            end
+        end
+        
+        if #validServers > 0 then
+            -- اختيار سيرفر عشوائي تماماً من القائمة المتاحة (حماية قوية ضد الـ Anti-Cheat)
+            local randomServerId = validServers[math.random(1, #validServers)]
+            StatusLabel.Text = "تجهيز النقل الآمن..."
+            
+            -- تأخير عشوائي مضاف (بين 1 إلى 3 ثوانٍ) قبل النقل الفعلي لمحاكاة تأخر العنصر البشري
+            task.wait(math.random(100, 300) / 100)
+            
+            pcall(function()
+                TeleportService:TeleportToPlaceInstance(placeId, randomServerId, LocalPlayer)
+            end)
         else
-            local m = game.CoreGui:FindFirstChild("SpyTrappedStorage")
-            if not m then
-                m = Instance.new("Folder")
-                m.Name = "SpyTrappedStorage"
-                m.Parent = game.CoreGui
-            end
-            local n = m:FindFirstChild("TrappedUsersData")
-            if not n then
-                n = Instance.new("StringValue")
-                n.Name = "TrappedUsersData"
-                n.Parent = m
-            end
-            n.Value = l
+            StatusLabel.Text = "لم يتم العثور على سيرفرات ملائمة، إعادة المحاولة..."
+            task.wait(2)
+            SafeTeleport()
         end
-    end)
-    if not j then
-        warn("خطأ في حفظ: " .. tostring(k))
-    end
-end
-
-local function o()
-    local j, k = pcall(function()
-        if readfile and isfile and isfile(h) then
-            local l = readfile(h)
-            local p = game:GetService("HttpService"):JSONDecode(l)
-            if type(p) == "table" then
-                for _, q in ipairs(p) do
-                    local r = false
-                    for _, s in ipairs(g) do
-                        if s.UserId == q.UserId then
-                            r = true
-                            break
-                        end
-                    end
-                    if not r then
-                        table.insert(g, q)
-                    end
-                end
-            end
-        else
-            local m = game.CoreGui:FindFirstChild("SpyTrappedStorage")
-            if m then
-                local n = m:FindFirstChild("TrappedUsersData")
-                if n and n.Value ~= "" then
-                    local l = n.Value
-                    local p = game:GetService("HttpService"):JSONDecode(l)
-                    if type(p) == "table" then
-                        for _, q in ipairs(p) do
-                            local r = false
-                            for _, s in ipairs(g) do
-                                if s.UserId == q.UserId then
-                                    r = true
-                                    break
-                                end
-                            end
-                            if not r then
-                                table.insert(g, q)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end)
-    if not j then
-        warn("خطأ في تحميل: " .. tostring(k))
-    end
-end
-
-o()
-
-local t = a:CreateWindow({
-    Title = "Spy Hub | V42",
-    SubTitle = "Developed by Spy",
-    TabWidth = 160,
-    Size = UDim2.fromOffset(580, 460),
-    Acrylic = false,
-    Theme = "Dark"
-})
-
-local function u(v, w)
-    for _, q in ipairs(g) do
-        if q.UserId == v then
-            return false
-        end
-    end
-    table.insert(g, {UserId = v, DisplayName = w, Time = os.date("%Y-%m-%d %H:%M:%S")})
-    i()
-    return true
-end
-
-local function x()
-    local y = {
-        Main = t:AddTab({Title = "Boat Master", Icon = "ship"}),
-        Visuals = t:AddTab({Title = "Visuals", Icon = "eye"})
-    }
-
-    _G.BoatSpeed = 0
-    _G.BoatHeight = 100
-    _G.BoatFly = false
-    _G.FullBright = false
-
-    task.spawn(function()
-        while true do
-            if _G.BoatFly then
-                pcall(function()
-                    local z = game.Players.LocalPlayer.Character
-                    local A = z and z.Humanoid.SeatPart
-                    if A and A:IsA("VehicleSeat") then
-                        local B = A:FindFirstChild("BodyVelocity")
-                        if not B then
-                            B = Instance.new("BodyVelocity")
-                            B.Parent = A
-                            B.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                        end
-                        local direction = z.Humanoid.MoveVector
-                        B.Velocity = direction * _G.BoatSpeed
-                        A.CFrame = A.CFrame + Vector3.new(0, (_G.BoatHeight - A.Position.Y) * 0.1, 0)
-                    end
-                end)
-            end
-            task.wait()
-        end
-    end)
-
-    task.spawn(function()
-        local C = game:GetService("Lighting")
-        while true do
-            if _G.FullBright then
-                C.Brightness = 2
-                C.ClockTime = 14
-                C.FogEnd = 100000
-                C.GlobalShadows = false
-                C.Ambient = Color3.fromRGB(255, 255, 255)
-            else
-                C.Brightness = 1
-                C.ClockTime = 12
-                C.FogEnd = 10000
-                C.GlobalShadows = true
-            end
-            task.wait(1)
-        end
-    end)
-
-    y.Main:AddSection("Movement")
-    y.Main:AddToggle("BoatFly", {
-        Title = "Enable Boat Flight",
-        Default = false,
-        Callback = function(v)
-            _G.BoatFly = v
-        end
-    })
-    y.Main:AddSlider("Speed", {
-        Title = "Drive Power",
-        Default = 100,
-        Min = 0,
-        Max = 1000,
-        Rounding = 0,
-        Callback = function(v)
-            _G.BoatSpeed = v
-        end
-    })
-    y.Main:AddSlider("Height", {
-        Title = "Height",
-        Default = 20,
-        Min = 20,
-        Max = 1000,
-        Rounding = 0,
-        Callback = function(v)
-            _G.BoatHeight = v
-        end
-    })
-
-    y.Visuals:AddSection("Environment")
-    y.Visuals:AddToggle("FullBright", {
-        Title = "Full Bright (Sea 6 Fix)",
-        Default = false,
-        Callback = function(v)
-            _G.FullBright = v
-        end
-    })
-end
-
-local function D(w, E, F)
-    local G = Instance.new("ScreenGui")
-    G.Parent = game.CoreGui
-    G.Name = "SpyMessage"
-
-    local H = Instance.new("Frame")
-    H.Parent = G
-    H.Size = UDim2.new(0, 400, 0, 200)
-    H.Position = UDim2.new(0.5, -200, 0.4, -100)
-    H.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    H.BorderColor3 = Color3.fromRGB(255, 50, 50)
-    H.BorderSizePixel = 2
-
-    local I = Instance.new("TextLabel")
-    I.Parent = H
-    I.Size = UDim2.new(1, -20, 0, 40)
-    I.Position = UDim2.new(0, 10, 0, 10)
-    I.Text = w
-    I.TextColor3 = Color3.fromRGB(255, 50, 50)
-    I.Font = Enum.Font.GothamBold
-    I.TextSize = 24
-    I.BackgroundTransparency = 1
-
-    local J = Instance.new("TextLabel")
-    J.Parent = H
-    J.Size = UDim2.new(1, -20, 1, -100)
-    J.Position = UDim2.new(0, 10, 0, 60)
-    J.Text = E
-    J.TextColor3 = Color3.fromRGB(255, 255, 255)
-    J.Font = Enum.Font.Gotham
-    J.TextSize = 18
-    J.BackgroundTransparency = 1
-    J.TextWrapped = true
-
-    local K = Instance.new("TextButton")
-    K.Parent = H
-    K.Size = UDim2.new(0, 100, 0, 30)
-    K.Position = UDim2.new(0.5, -50, 1, -40)
-    K.Text = "حسناً"
-    K.TextColor3 = Color3.fromRGB(255, 255, 255)
-    K.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    K.Font = Enum.Font.Gotham
-    K.TextSize = 16
-    K.MouseButton1Click:Connect(function()
-        G:Destroy()
-    end)
-    delay(F, function()
-        if G and G.Parent then
-            G:Destroy()
-        end
-    end)
-end
-
-local function L()
-    local G = Instance.new("ScreenGui", game.CoreGui)
-    local H = Instance.new("Frame")
-    H.Parent = G
-    H.Size = UDim2.new(0, 450, 0, 400)
-    H.Position = UDim2.new(0.5, -225, 0.4, -200)
-    H.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    H.BorderColor3 = Color3.fromRGB(0, 255, 0)
-    H.BorderSizePixel = 2
-
-    local I = Instance.new("TextLabel")
-    I.Parent = H
-    I.Size = UDim2.new(1, -20, 0, 40)
-    I.Position = UDim2.new(0, 10, 0, 10)
-    I.Text = "🕵️ قائمة الضحايا 🕵️"
-    I.TextColor3 = Color3.fromRGB(0, 255, 0)
-    I.Font = Enum.Font.GothamBold
-    I.TextSize = 20
-    I.BackgroundTransparency = 1
-
-    local M = Instance.new("ScrollingFrame")
-    M.Parent = H
-    M.Size = UDim2.new(1, -20, 1, -100)
-    M.Position = UDim2.new(0, 10, 0, 60)
-    M.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    M.BorderSizePixel = 0
-    M.ScrollBarThickness = 8
-
-    local N = Instance.new("UIListLayout")
-    N.Parent = M
-    N.Padding = UDim.new(0, 5)
-    N.SortOrder = Enum.SortOrder.LayoutOrder
-
-    if #g == 0 then
-        local O = Instance.new("TextLabel")
-        O.Parent = M
-        O.Size = UDim2.new(1, 0, 0, 30)
-        O.Text = "لا يوجد ضحايا... للأسف 😢"
-        O.TextColor3 = Color3.fromRGB(150, 150, 150)
-        O.Font = Enum.Font.Gotham
-        O.TextSize = 16
-        O.BackgroundTransparency = 1
     else
-        for P, q in ipairs(g) do
-            local Q = Instance.new("Frame")
-            Q.Parent = M
-            Q.Size = UDim2.new(1, -10, 0, 45)
-            Q.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            Q.BorderSizePixel = 0
-
-            local R = Instance.new("TextLabel")
-            R.Parent = Q
-            R.Size = UDim2.new(0, 30, 1, 0)
-            R.Position = UDim2.new(0, 5, 0, 0)
-            R.Text = "#" .. P
-            R.TextColor3 = Color3.fromRGB(0, 255, 0)
-            R.Font = Enum.Font.GothamBold
-            R.TextSize = 18
-            R.BackgroundTransparency = 1
-
-            local S = Instance.new("TextLabel")
-            S.Parent = Q
-            S.Size = UDim2.new(0, 250, 0, 20)
-            S.Position = UDim2.new(0, 40, 0, 3)
-            S.Text = "👤 " .. q.DisplayName
-            S.TextColor3 = Color3.fromRGB(255, 255, 255)
-            S.Font = Enum.Font.Gotham
-            S.TextSize = 14
-            S.BackgroundTransparency = 1
-
-            local T = Instance.new("TextLabel")
-            T.Parent = Q
-            T.Size = UDim2.new(0, 250, 0, 20)
-            T.Position = UDim2.new(0, 40, 0, 23)
-            T.Text = "ID: " .. q.UserId
-            T.TextColor3 = Color3.fromRGB(150, 150, 150)
-            T.Font = Enum.Font.Gotham
-            T.TextSize = 12
-            T.BackgroundTransparency = 1
-        end
+        StatusLabel.Text = "فشل جلب السيرفرات، جاري المحاولة..."
+        task.wait(3)
+        SafeTeleport()
     end
-
-    local U = Instance.new("TextButton")
-    U.Parent = H
-    U.Size = UDim2.new(0, 100, 0, 30)
-    U.Position = UDim2.new(0, 10, 1, -40)
-    U.Text = "تحديث"
-    U.TextColor3 = Color3.fromRGB(255, 255, 255)
-    U.BackgroundColor3 = Color3.fromRGB(50, 100, 50)
-    U.Font = Enum.Font.Gotham
-    U.TextSize = 14
-    U.MouseButton1Click:Connect(function()
-        G:Destroy()
-        L()
-    end)
-
-    local K = Instance.new("TextButton")
-    K.Parent = H
-    K.Size = UDim2.new(0, 100, 0, 30)
-    K.Position = UDim2.new(1, -110, 1, -40)
-    K.Text = "إغلاق"
-    K.TextColor3 = Color3.fromRGB(255, 255, 255)
-    K.BackgroundColor3 = Color3.fromRGB(100, 50, 50)
-    K.Font = Enum.Font.Gotham
-    K.TextSize = 14
-    K.MouseButton1Click:Connect(function()
-        G:Destroy()
-    end)
-
-    local V = Instance.new("TextLabel")
-    V.Parent = H
-    V.Size = UDim2.new(0, 200, 0, 25)
-    V.Position = UDim2.new(0.5, -100, 1, -70)
-    V.Text = "عدد الضحايا: " .. #g .. " 👿"
-    V.TextColor3 = Color3.fromRGB(255, 255, 0)
-    V.Font = Enum.Font.GothamBold
-    V.TextSize = 14
-    V.BackgroundTransparency = 1
 end
 
-local W = t:AddTab({Title = "Verification", Icon = "key"})
-W:AddInput("Input", {
-    Title = "Enter Activation Key",
-    Default = "",
-    Placeholder = "Enter the key...",
-    Numeric = false,
-    Finished = false,
-    Callback = function(v)
-        d = v
-    end
-})
-W:AddButton({
-    Title = "Verify Key",
-    Description = "Unlock Spy Hub Features",
-    Callback = function()
-        if d == f then
-            L()
-            return
-        end
-        if e and d ~= f then
-            t:Notify({Title = "Spy Hub", Content = "Already Active!", Duration = 3})
-            return
-        end
-        if d == c then
-            local X = game.Players.LocalPlayer
-            u(X.UserId, X.DisplayName)
-            D("😂😂😂", "المفتاح تغير ههه قلتلك اني بغير المفتاح يا ابن الحرام 😂", 10)
-            return
-        end
-        if d == b then
-            e = true
-            t:Notify({Title = "Success!", Content = "Spy Hub V42 Activated!", Duration = 5})
-            x()
-        else
-            t:Notify({Title = "Error!", Content = "Incorrect Key!", Duration = 5})
+--- وظيفة فحص الليدربورد والشروط بشكل متخفي ---
+local function checkCurrentServer()
+    if _G.SearchMode == "Rich" then
+        for _, player in ipairs(Players:GetPlayers()) do
+            local leaderstats = player:FindFirstChild("leaderstats")
+            if leaderstats then
+                local coins = leaderstats:FindFirstChild("Coins") or leaderstats:FindFirstChild("Money") or leaderstats:FindFirstChild("Cash")
+                if coins and coins.Value >= 30000000 then
+                    StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 120)
+                    StatusLabel.Text = "تم العثور على هدف: " .. player.Name
+                    return true
+                end
+            end
         end
     end
-})
 
-local function Y()
-    local Z = Instance.new("ScreenGui", game.CoreGui)
-    local _ = Instance.new("ImageButton", Z)
-    _.Size = UDim2.new(0, 50, 0, 50)
-    _.Position = UDim2.new(0, 20, 0, 150)
-    _.Image = "rbxassetid://15115500021"
-    _.BackgroundTransparency = 0
-    _.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    _.MouseButton1Click:Connect(function()
-        t:Toggle()
-    end)
+    if _G.SearchMode == "Pet" and _G.TargetPetName then
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj.Name:lower() == _G.TargetPetName:lower() or string.find(obj.Name:lower(), _G.TargetPetName:lower()) then
+                StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 120)
+                StatusLabel.Text = "تم العثور على البت المطلوبة!"
+                return true
+            end
+        end
+    end
+    
+    return false
 end
 
-Y()
-t:SelectTab(1)
+-- تفعيل الأزرار مع منع الـ Spam
+local lastClick = 0
+local function canClick()
+    if os.time() - lastClick > 3 then
+        lastClick = os.time()
+        return true
+    end
+    return false
+end
 
-print("✅ Spy Hub V42 تم التحميل بنجاح!")
+TeleportRichBtn.MouseButton1Click:Connect(function()
+    if not canClick() then return end
+    _G.SearchMode = "Rich"
+    SafeTeleport()
+end)
+
+TeleportPetBtn.MouseButton1Click:Connect(function()
+    if not canClick() then return end
+    _G.SearchMode = "Pet"
+    _G.TargetPetName = petList[currentPetIndex]
+    SafeTeleport()
+end)
+
+-- بدء الفحص بعد دخول السيرفر الجديد بأمان
+task.spawn(function()
+    -- انتظار عشوائي وآمن يتراوح بين 4 إلى 6 ثوانٍ لضمان تحميل البيانات وتجنب الرصد الفوري
+    task.wait(math.random(400, 600) / 100)
+    
+    if _G.SearchMode then
+        local found = checkCurrentServer()
+        if not found then
+            StatusLabel.TextColor3 = Color3.fromRGB(255, 150, 0)
+            StatusLabel.Text = "الشروط غير متطابقة. جاري القفز الآمن..."
+            task.wait(math.random(150, 250) / 100) -- تأخير إضافي قبل المغادرة
+            SafeTeleport()
+        end
+    end
+end)
